@@ -10,7 +10,7 @@ jest.mock('../config/database', () => ({
 // Mock AI Model Manager
 jest.mock('../services/ai/AIModelManager', () => ({
   AIModelManager: jest.fn().mockImplementation(() => ({
-    getDefaultModel: jest.fn().mockReturnValue({
+    getModel: jest.fn().mockReturnValue({
       query: jest.fn().mockResolvedValue({
         response: JSON.stringify({
           overall_score: 75,
@@ -434,6 +434,412 @@ describe('CompetitiveAnalysisService', () => {
     });
   });
 
+  describe('generateBenchmarkReport', () => {
+    it('should generate comprehensive benchmark report', async () => {
+      // Mock brand query
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ id: 'brand-1', name: 'TechCorp' }]
+      });
+      
+      // Mock brand metrics query
+      mockQuery.mockResolvedValueOnce({
+        rows: mockBrandMetrics
+      });
+      
+      // Mock competitor queries
+      mockQuery.mockResolvedValueOnce({ rows: mockAIResponses });
+      mockQuery.mockResolvedValueOnce({ rows: mockAIResponses });
+
+      const result = await service.generateBenchmarkReport(
+        'brand-1',
+        ['CompetitorA', 'CompetitorB'],
+        new Date('2024-01-01'),
+        new Date('2024-01-31')
+      );
+
+      expect(result).toHaveProperty('brand_id', 'brand-1');
+      expect(result).toHaveProperty('brand_name', 'TechCorp');
+      expect(result).toHaveProperty('benchmark_period');
+      expect(result).toHaveProperty('industry_benchmarks');
+      expect(result).toHaveProperty('competitive_benchmarks');
+      expect(result).toHaveProperty('benchmark_insights');
+      expect(result).toHaveProperty('improvement_priorities');
+      expect(result).toHaveProperty('generated_at');
+
+      // Verify industry benchmarks structure
+      expect(result.industry_benchmarks).toHaveLength(5);
+      expect(result.industry_benchmarks[0]).toHaveProperty('metric');
+      expect(result.industry_benchmarks[0]).toHaveProperty('brand_value');
+      expect(result.industry_benchmarks[0]).toHaveProperty('industry_average');
+      expect(result.industry_benchmarks[0]).toHaveProperty('percentile_rank');
+      expect(result.industry_benchmarks[0]).toHaveProperty('performance_category');
+
+      // Verify competitive benchmarks structure
+      expect(result.competitive_benchmarks).toHaveLength(2);
+      expect(result.competitive_benchmarks[0]).toHaveProperty('competitor_name');
+      expect(result.competitive_benchmarks[0]).toHaveProperty('metrics');
+      expect(result.competitive_benchmarks[0]).toHaveProperty('performance_gap');
+      expect(result.competitive_benchmarks[0]).toHaveProperty('relative_strength');
+    });
+
+    it('should calculate performance categories correctly', async () => {
+      // Mock brand query
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ id: 'brand-1', name: 'TechCorp' }]
+      });
+      
+      // Mock high-performing brand metrics
+      const highPerformingMetrics = mockBrandMetrics.map(metric => ({
+        ...metric,
+        overall_score: 95,
+        mention_frequency: 25,
+        average_sentiment: 0.9
+      }));
+      
+      mockQuery.mockResolvedValueOnce({
+        rows: highPerformingMetrics
+      });
+      
+      // Mock competitor queries with lower performance
+      mockQuery.mockResolvedValueOnce({ rows: mockAIResponses });
+
+      const result = await service.generateBenchmarkReport(
+        'brand-1',
+        ['CompetitorA'],
+        new Date('2024-01-01'),
+        new Date('2024-01-31')
+      );
+
+      // High-performing brand should have excellent or above_average categories
+      const overallScoreBenchmark = result.industry_benchmarks.find(b => b.metric === 'overall_score');
+      expect(overallScoreBenchmark?.performance_category).toMatch(/excellent|above_average/);
+    });
+
+    it('should identify improvement priorities for underperforming metrics', async () => {
+      // Mock brand query
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ id: 'brand-1', name: 'TechCorp' }]
+      });
+      
+      // Mock low-performing brand metrics
+      const lowPerformingMetrics = mockBrandMetrics.map(metric => ({
+        ...metric,
+        overall_score: 30,
+        mention_frequency: 2,
+        average_sentiment: 0.1
+      }));
+      
+      mockQuery.mockResolvedValueOnce({
+        rows: lowPerformingMetrics
+      });
+      
+      // Mock competitor queries
+      mockQuery.mockResolvedValueOnce({ rows: mockAIResponses });
+
+      const result = await service.generateBenchmarkReport(
+        'brand-1',
+        ['CompetitorA'],
+        new Date('2024-01-01'),
+        new Date('2024-01-31')
+      );
+
+      // Should have improvement priorities for poor performance
+      expect(result.improvement_priorities.length).toBeGreaterThan(0);
+      
+      const highPriorityItems = result.improvement_priorities.filter(p => p.priority === 'high');
+      expect(highPriorityItems.length).toBeGreaterThan(0);
+      
+      // Each priority should have recommended actions
+      result.improvement_priorities.forEach(priority => {
+        expect(priority).toHaveProperty('metric');
+        expect(priority).toHaveProperty('current_value');
+        expect(priority).toHaveProperty('target_value');
+        expect(priority).toHaveProperty('improvement_potential');
+        expect(priority).toHaveProperty('priority');
+        expect(priority).toHaveProperty('recommended_actions');
+        expect(priority.recommended_actions.length).toBeGreaterThan(0);
+      });
+    });
+  });
+
+  describe('identifyMarketOpportunities', () => {
+    it('should identify market opportunities successfully', async () => {
+      // Mock brand query for identifyMarketOpportunities
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ id: 'brand-1', name: 'TechCorp' }]
+      });
+      
+      // Mock brand metrics query for identifyMarketOpportunities
+      mockQuery.mockResolvedValueOnce({
+        rows: mockBrandMetrics
+      });
+      
+      // Mock brand query for analyzeMarketPositioning (called internally)
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ id: 'brand-1', name: 'TechCorp' }]
+      });
+      
+      // Mock brand metrics query for analyzeMarketPositioning
+      mockQuery.mockResolvedValueOnce({
+        rows: mockBrandMetrics
+      });
+      
+      // Mock competitor queries for market positioning
+      mockQuery.mockResolvedValueOnce({ rows: mockAIResponses });
+      mockQuery.mockResolvedValueOnce({ rows: mockAIResponses });
+
+      const result = await service.identifyMarketOpportunities(
+        'brand-1',
+        ['CompetitorA', 'CompetitorB'],
+        new Date('2024-01-01'),
+        new Date('2024-01-31')
+      );
+
+      expect(result).toHaveProperty('brand_id', 'brand-1');
+      expect(result).toHaveProperty('brand_name', 'TechCorp');
+      expect(result).toHaveProperty('analysis_period');
+      expect(result).toHaveProperty('market_opportunities');
+      expect(result).toHaveProperty('competitive_opportunities');
+      expect(result).toHaveProperty('strategic_recommendations');
+      expect(result).toHaveProperty('generated_at');
+
+      // Verify market opportunities structure
+      if (result.market_opportunities.length > 0) {
+        expect(result.market_opportunities[0]).toHaveProperty('opportunity_type');
+        expect(result.market_opportunities[0]).toHaveProperty('title');
+        expect(result.market_opportunities[0]).toHaveProperty('description');
+        expect(result.market_opportunities[0]).toHaveProperty('potential_impact');
+        expect(result.market_opportunities[0]).toHaveProperty('effort_required');
+        expect(result.market_opportunities[0]).toHaveProperty('priority_score');
+        expect(result.market_opportunities[0]).toHaveProperty('estimated_timeline');
+        expect(result.market_opportunities[0]).toHaveProperty('success_metrics');
+        expect(result.market_opportunities[0]).toHaveProperty('recommended_actions');
+      }
+
+      // Verify strategic recommendations structure
+      expect(result.strategic_recommendations).toHaveProperty('short_term');
+      expect(result.strategic_recommendations).toHaveProperty('medium_term');
+      expect(result.strategic_recommendations).toHaveProperty('long_term');
+      expect(Array.isArray(result.strategic_recommendations.short_term)).toBe(true);
+      expect(Array.isArray(result.strategic_recommendations.medium_term)).toBe(true);
+      expect(Array.isArray(result.strategic_recommendations.long_term)).toBe(true);
+    });
+
+    it('should identify visibility gap opportunities for low-performing brands', async () => {
+      // Mock brand query for identifyMarketOpportunities
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ id: 'brand-1', name: 'TechCorp' }]
+      });
+      
+      // Mock low-performing brand metrics for identifyMarketOpportunities
+      const lowVisibilityMetrics = mockBrandMetrics.map(metric => ({
+        ...metric,
+        overall_score: 45,
+        mention_frequency: 3,
+        average_sentiment: 0.4
+      }));
+      
+      mockQuery.mockResolvedValueOnce({
+        rows: lowVisibilityMetrics
+      });
+      
+      // Mock brand query for analyzeMarketPositioning
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ id: 'brand-1', name: 'TechCorp' }]
+      });
+      
+      // Mock brand metrics for analyzeMarketPositioning
+      mockQuery.mockResolvedValueOnce({
+        rows: lowVisibilityMetrics
+      });
+      
+      // Mock competitor queries
+      mockQuery.mockResolvedValueOnce({ rows: mockAIResponses });
+
+      const result = await service.identifyMarketOpportunities(
+        'brand-1',
+        ['CompetitorA'],
+        new Date('2024-01-01'),
+        new Date('2024-01-31')
+      );
+
+      // Should identify visibility gap opportunity
+      const visibilityOpportunity = result.market_opportunities.find(
+        o => o.opportunity_type === 'visibility_gap'
+      );
+      expect(visibilityOpportunity).toBeDefined();
+      expect(visibilityOpportunity?.potential_impact).toMatch(/high|medium/);
+    });
+
+    it('should identify sentiment improvement opportunities', async () => {
+      // Mock brand query for identifyMarketOpportunities
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ id: 'brand-1', name: 'TechCorp' }]
+      });
+      
+      // Mock brand metrics with poor sentiment for identifyMarketOpportunities
+      const poorSentimentMetrics = mockBrandMetrics.map(metric => ({
+        ...metric,
+        average_sentiment: 0.3
+      }));
+      
+      mockQuery.mockResolvedValueOnce({
+        rows: poorSentimentMetrics
+      });
+      
+      // Mock brand query for analyzeMarketPositioning
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ id: 'brand-1', name: 'TechCorp' }]
+      });
+      
+      // Mock brand metrics for analyzeMarketPositioning
+      mockQuery.mockResolvedValueOnce({
+        rows: poorSentimentMetrics
+      });
+      
+      // Mock competitor queries
+      mockQuery.mockResolvedValueOnce({ rows: mockAIResponses });
+
+      const result = await service.identifyMarketOpportunities(
+        'brand-1',
+        ['CompetitorA'],
+        new Date('2024-01-01'),
+        new Date('2024-01-31')
+      );
+
+      // Should identify sentiment improvement opportunity
+      const sentimentOpportunity = result.market_opportunities.find(
+        o => o.opportunity_type === 'sentiment_improvement'
+      );
+      expect(sentimentOpportunity).toBeDefined();
+      expect(sentimentOpportunity?.potential_impact).toBe('high');
+    });
+
+    it('should prioritize opportunities by score', async () => {
+      // Mock brand query for identifyMarketOpportunities
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ id: 'brand-1', name: 'TechCorp' }]
+      });
+      
+      // Mock brand metrics with multiple issues for identifyMarketOpportunities
+      const multipleIssuesMetrics = mockBrandMetrics.map(metric => ({
+        ...metric,
+        overall_score: 40,
+        average_sentiment: 0.2,
+        ranking_position: 8
+      }));
+      
+      mockQuery.mockResolvedValueOnce({
+        rows: multipleIssuesMetrics
+      });
+      
+      // Mock brand query for analyzeMarketPositioning
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ id: 'brand-1', name: 'TechCorp' }]
+      });
+      
+      // Mock brand metrics for analyzeMarketPositioning
+      mockQuery.mockResolvedValueOnce({
+        rows: multipleIssuesMetrics
+      });
+      
+      // Mock competitor queries
+      mockQuery.mockResolvedValueOnce({ rows: mockAIResponses });
+
+      const result = await service.identifyMarketOpportunities(
+        'brand-1',
+        ['CompetitorA'],
+        new Date('2024-01-01'),
+        new Date('2024-01-31')
+      );
+
+      // Opportunities should be sorted by priority score (descending)
+      if (result.market_opportunities.length > 1) {
+        for (let i = 0; i < result.market_opportunities.length - 1; i++) {
+          const currentOpportunity = result.market_opportunities[i];
+          const nextOpportunity = result.market_opportunities[i + 1];
+          if (currentOpportunity && nextOpportunity) {
+            expect(currentOpportunity.priority_score).toBeGreaterThanOrEqual(
+              nextOpportunity.priority_score
+            );
+          }
+        }
+      }
+    });
+  });
+
+  describe('generateImprovementRecommendations', () => {
+    it('should generate improvement recommendations based on competitive gaps', async () => {
+      // Mock brand query
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ id: 'brand-1', name: 'TechCorp' }]
+      });
+
+      const competitiveGaps = [
+        {
+          category: 'visibility' as const,
+          gap_size: 'large' as const,
+          description: 'Overall visibility score is 25 points behind competitor',
+          impact: 'high' as const,
+          recommendation: 'Increase content marketing and thought leadership initiatives'
+        },
+        {
+          category: 'sentiment' as const,
+          gap_size: 'medium' as const,
+          description: 'Sentiment score is 15% behind competitor',
+          impact: 'medium' as const,
+          recommendation: 'Focus on customer satisfaction and positive brand messaging'
+        }
+      ];
+
+      const result = await service.generateImprovementRecommendations(
+        'brand-1',
+        competitiveGaps
+      );
+
+      expect(result).toHaveProperty('immediate_actions');
+      expect(result).toHaveProperty('short_term_strategies');
+      expect(result).toHaveProperty('long_term_initiatives');
+      expect(result).toHaveProperty('success_metrics');
+
+      expect(Array.isArray(result.immediate_actions)).toBe(true);
+      expect(Array.isArray(result.short_term_strategies)).toBe(true);
+      expect(Array.isArray(result.long_term_initiatives)).toBe(true);
+      expect(Array.isArray(result.success_metrics)).toBe(true);
+
+      expect(result.immediate_actions.length).toBeGreaterThan(0);
+      expect(result.short_term_strategies.length).toBeGreaterThan(0);
+      expect(result.long_term_initiatives.length).toBeGreaterThan(0);
+      expect(result.success_metrics.length).toBeGreaterThan(0);
+    });
+
+    it('should handle empty competitive gaps', async () => {
+      // Mock brand query
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ id: 'brand-1', name: 'TechCorp' }]
+      });
+
+      const result = await service.generateImprovementRecommendations(
+        'brand-1',
+        []
+      );
+
+      // Should still provide fallback recommendations
+      expect(result.immediate_actions.length).toBeGreaterThan(0);
+      expect(result.short_term_strategies.length).toBeGreaterThan(0);
+      expect(result.long_term_initiatives.length).toBeGreaterThan(0);
+      expect(result.success_metrics.length).toBeGreaterThan(0);
+    });
+
+    it('should throw error for non-existent brand', async () => {
+      mockQuery.mockResolvedValueOnce({ rows: [] });
+
+      await expect(
+        service.generateImprovementRecommendations('non-existent', [])
+      ).rejects.toThrow('Brand with ID non-existent not found');
+    });
+  });
+
   describe('error handling', () => {
     it('should handle database connection errors gracefully', async () => {
       mockQuery.mockRejectedValueOnce(new Error('Database connection failed'));
@@ -462,7 +868,7 @@ describe('CompetitiveAnalysisService', () => {
       };
       
       const mockAIModelManager = {
-        getDefaultModel: jest.fn().mockReturnValue(mockAIModel)
+        getModel: jest.fn().mockReturnValue(mockAIModel)
       };
       
       // Replace the AI model manager in the service
@@ -478,6 +884,32 @@ describe('CompetitiveAnalysisService', () => {
       // Should still return results with fallback recommendations
       expect(result).toHaveProperty('recommendations');
       expect(result.recommendations).toContain('Increase content marketing efforts to improve visibility');
+    });
+
+    it('should handle benchmark report generation errors', async () => {
+      mockQuery.mockRejectedValueOnce(new Error('Database error'));
+
+      await expect(
+        service.generateBenchmarkReport(
+          'brand-1',
+          ['CompetitorA'],
+          new Date('2024-01-01'),
+          new Date('2024-01-31')
+        )
+      ).rejects.toThrow('Database error');
+    });
+
+    it('should handle opportunity identification errors', async () => {
+      mockQuery.mockRejectedValueOnce(new Error('Database error'));
+
+      await expect(
+        service.identifyMarketOpportunities(
+          'brand-1',
+          ['CompetitorA'],
+          new Date('2024-01-01'),
+          new Date('2024-01-31')
+        )
+      ).rejects.toThrow('Database error');
     });
   });
 
