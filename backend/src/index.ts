@@ -10,6 +10,7 @@ import { AuthController } from './controllers/auth';
 import { UserController } from './controllers/users';
 import { BrandController } from './controllers/brands';
 import { reportsRouter } from './routes/reports';
+import { competitiveRouter } from './routes/competitive';
 import { 
   authenticate, 
   authorize, 
@@ -259,6 +260,9 @@ app.put('/api/brands/:brandId/competitors',
 
 // Reports routes
 app.use('/api/reports', reportsRouter);
+
+// Competitive analysis routes
+app.use('/api/competitive', competitiveRouter);
 
 // Get active AI models endpoint
 app.get('/api/ai-models', async (_req, res) => {

@@ -58,7 +58,7 @@
     - Write unit tests for visibility calculations
     - _Requirements: 1.1, 1.2, 1.3_
   
-  - [ ] 5.2 Create performance reporting system
+  - [x] 5.2 Create performance reporting system
     - Implement performance report generation with charts and metrics
     - Create data aggregation functions for different time periods
     - Build export functionality for reports (PDF, CSV)
@@ -66,7 +66,7 @@
     - _Requirements: 1.1, 1.2, 1.3, 10.1, 10.2_
 
 - [ ] 6. Develop Competitive Analysis Service
-  - [ ] 6.1 Implement competitor comparison logic
+  - [x] 6.1 Implement competitor comparison logic
     - Create side-by-side brand comparison algorithms
     - Implement market share calculation methods
     - Build competitive gap analysis functionality
