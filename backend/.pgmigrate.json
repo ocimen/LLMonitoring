@@ -1,0 +1,8 @@
+{
+  "database-url": "postgresql://postgres:postgres@localhost:5432/llm_brand_monitoring",
+  "migrations-dir": "migrations",
+  "migrations-table": "pgmigrations",
+  "migrations-schema": "public",
+  "check-order": true,
+  "verbose": true
+}
