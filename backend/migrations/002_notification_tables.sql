@@ -10,7 +10,7 @@ CREATE TABLE notification_preferences (
     in_app_enabled BOOLEAN DEFAULT true,
     quiet_hours_start TIME, -- HH:MM format
     quiet_hours_end TIME, -- HH:MM format
-    frequency_limit INTEGER DEFAULT 10, -- Max notifications per hour
+    frequency_limit INTEGER DEFAULT 10 CHECK (frequency_limit > 0), -- Max notifications per hour
     email_address VARCHAR(255),
     phone_number VARCHAR(20),
     webhook_url VARCHAR(500),
