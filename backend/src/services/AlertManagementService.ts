@@ -597,30 +597,43 @@ export class AlertManagementService {
   }
 
   /**
-   * Send notification through specified channel (placeholder implementation)
+   * Send notification through specified channel
    */
   private async sendNotification(alert: Alert, channel: string): Promise<void> {
     try {
       console.log(`Sending ${channel} notification for alert ${alert.id}`);
       
-      // TODO: Implement actual notification sending
-      // This would integrate with email services, SMS providers, webhooks, etc.
-      
-      switch (channel) {
-        case 'email':
-          // await this.sendEmailNotification(alert);
-          break;
-        case 'sms':
-          // await this.sendSMSNotification(alert);
-          break;
-        case 'webhook':
-          // await this.sendWebhookNotification(alert);
-          break;
-        case 'in_app':
-          // await this.sendInAppNotification(alert);
-          break;
-        default:
-          console.warn(`Unknown notification channel: ${channel}`);
+      // Get users associated with the brand
+      const usersResult = await query(
+        `SELECT u.id FROM users u 
+         JOIN user_brands ub ON u.id = ub.user_id 
+         WHERE ub.brand_id = $1 AND u.is_active = true`,
+        [alert.brand_id]
+      );
+
+      if (usersResult.rows.length === 0) {
+        console.warn(`No active users found for brand ${alert.brand_id}`);
+        return;
+      }
+
+      // Import NotificationService dynamically to avoid circular dependencies
+      const { NotificationService } = await import('./NotificationService');
+      const notificationService = new NotificationService();
+
+      // Send notification to each user
+      for (const user of usersResult.rows) {
+        try {
+          const preferences = await notificationService.getNotificationPreferences(user.id);
+          await notificationService.sendNotification(
+            alert,
+            channel as 'email' | 'sms' | 'webhook' | 'in_app',
+            user.id,
+            preferences
+          );
+        } catch (error) {
+          console.error(`Failed to send ${channel} notification to user ${user.id}:`, error);
+          // Continue with other users even if one fails
+        }
       }
     } catch (error) {
       console.error(`Failed to send ${channel} notification for alert ${alert.id}:`, error);
