@@ -94,6 +94,12 @@ export class NotificationService {
    */
   private initializeEmailTransporter(): void {
     try {
+      // Validate required email configuration
+      if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.warn('Email configuration incomplete - email notifications will be disabled');
+        return;
+      }
+
       const emailConfig: EmailConfig = {
         host: process.env.SMTP_HOST || 'localhost',
         port: parseInt(process.env.SMTP_PORT || '587'),
@@ -106,6 +112,14 @@ export class NotificationService {
 
       // Always create transporter for testing
       this.emailTransporter = nodemailer.createTransport(emailConfig);
+      
+      // Verify configuration
+      this.emailTransporter.verify((error) => {
+        if (error) {
+          console.error('Email transporter verification failed:', error);
+          this.emailTransporter = null;
+        }
+      });
     } catch (error) {
       console.error('Failed to initialize email transporter:', error);
     }
