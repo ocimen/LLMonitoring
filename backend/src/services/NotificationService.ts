@@ -339,7 +339,10 @@ export class NotificationService {
   ): Promise<NotificationDelivery> {
     try {
       const notification = {
-        id: `notif-${Date.now()}`,
+      const notification = {
+        id: undefined, // Let the database generate the ID
+        // …other notification properties…
+      };
         alert_id: alert.id,
         title: alert.title,
         message: alert.message,
