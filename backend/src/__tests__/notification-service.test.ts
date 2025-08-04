@@ -398,9 +398,13 @@ describe('NotificationService', () => {
 
         // Mock current time to be within quiet hours
         const originalDate = Date;
+        // Mock current time to be within quiet hours
+        const originalDate = Date;
         const mockDate = new Date('2024-01-15T23:00:00Z'); // 11 PM
-        global.Date = jest.fn(() => mockDate) as any;
-        global.Date.now = originalDate.now;
+        jest.spyOn(global, 'Date').mockImplementation(() => mockDate);
+        Date.now = originalDate.now;
+        Date.UTC = originalDate.UTC;
+        Date.parse = originalDate.parse;
 
         // Mock failed delivery record creation
         mockQuery.mockResolvedValueOnce({
@@ -423,8 +427,7 @@ describe('NotificationService', () => {
         expect(result.error_message).toContain('quiet hours');
 
         // Restore original Date
-        global.Date = originalDate;
-      });
+        jest.restoreAllMocks();
 
       it('should respect frequency limits', async () => {
         const limitedPreferences = {
