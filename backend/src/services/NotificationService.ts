@@ -224,7 +224,8 @@ export class NotificationService {
 
       const userEmail = userResult.rows[0].email;
       const template = await this.getEmailTemplate(alert.severity);
-      const emailContent = this.renderTemplate(template, alert);
+-      const emailContent = this.renderTemplate(template, alert);
++      const emailContent = await this.renderTemplate(template, alert);
 
       const mailOptions = {
         from: process.env.SMTP_FROM || 'noreply@brandmonitor.com',
