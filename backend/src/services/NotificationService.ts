@@ -805,7 +805,23 @@ export class NotificationService {
       title: alert.title,
       message: alert.message,
       created_at: alert.created_at.toLocaleString(),
-      brand_name: 'Your Brand' // This would come from brand lookup
+    // Fetch brand name
+    const brandResult = await query(
+      'SELECT name FROM brands WHERE id = $1',
+      [alert.brand_id]
+    );
+    const brandName =
+      brandResult.rows.length > 0
+        ? brandResult.rows[0].name
+        : 'Unknown Brand';
+
+    const variables = {
+      severity: alert.severity.toUpperCase(),
+      title: alert.title,
+      message: alert.message,
+      created_at: alert.created_at.toLocaleString(),
+      brand_name: brandName
+    };
     };
 
     for (const [key, value] of Object.entries(variables)) {
