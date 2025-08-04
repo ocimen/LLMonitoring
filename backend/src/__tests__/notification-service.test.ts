@@ -13,7 +13,10 @@ jest.mock('../config/database', () => ({
 // Mock nodemailer
 jest.mock('nodemailer', () => ({
   createTransport: jest.fn().mockReturnValue({
-    sendMail: jest.fn().mockResolvedValue({ messageId: 'test-message-id' })
+    sendMail: jest.fn().mockResolvedValue({ messageId: 'test-message-id' }),
+    verify: jest.fn().mockImplementation((callback) => {
+      if (callback) callback(null);
+    })
   })
 }));
 
@@ -79,7 +82,10 @@ describe('NotificationService', () => {
     
     // Mock nodemailer transporter
     (nodemailer.createTransport as jest.Mock).mockReturnValue({
-      sendMail: mockSendMail.mockResolvedValue({ messageId: 'test-message-id' })
+      sendMail: mockSendMail.mockResolvedValue({ messageId: 'test-message-id' }),
+      verify: jest.fn().mockImplementation((callback) => {
+        if (callback) callback(null);
+      })
     });
 
     service = new NotificationService(mockSocketIO);
@@ -98,6 +104,12 @@ describe('NotificationService', () => {
         mockQuery.mockResolvedValueOnce({
           rows: [],
           rowCount: 0
+        });
+
+        // Mock brand name lookup
+        mockQuery.mockResolvedValueOnce({
+          rows: [{ name: 'Test Brand' }],
+          rowCount: 1
         });
 
         // Mock delivery record creation
@@ -136,6 +148,12 @@ describe('NotificationService', () => {
         mockQuery.mockResolvedValueOnce({
           rows: [],
           rowCount: 0
+        });
+
+        // Mock brand name lookup
+        mockQuery.mockResolvedValueOnce({
+          rows: [{ name: 'Test Brand' }],
+          rowCount: 1
         });
 
         // Mock email sending failure
@@ -398,8 +416,6 @@ describe('NotificationService', () => {
 
         // Mock current time to be within quiet hours
         const originalDate = Date;
-        // Mock current time to be within quiet hours
-        const originalDate = Date;
         const mockDate = new Date('2024-01-15T23:00:00Z'); // 11 PM
         jest.spyOn(global, 'Date').mockImplementation(() => mockDate);
         Date.now = originalDate.now;
@@ -428,6 +444,7 @@ describe('NotificationService', () => {
 
         // Restore original Date
         jest.restoreAllMocks();
+      });
 
       it('should respect frequency limits', async () => {
         const limitedPreferences = {
@@ -788,6 +805,12 @@ describe('NotificationService', () => {
       mockQuery.mockResolvedValueOnce({
         rows: [],
         rowCount: 0
+      });
+
+      // Mock brand name lookup
+      mockQuery.mockResolvedValueOnce({
+        rows: [{ name: 'Test Brand' }],
+        rowCount: 1
       });
 
       // Mock delivery record creation

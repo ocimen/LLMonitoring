@@ -224,8 +224,7 @@ export class NotificationService {
 
       const userEmail = userResult.rows[0].email;
       const template = await this.getEmailTemplate(alert.severity);
--      const emailContent = this.renderTemplate(template, alert);
-+      const emailContent = await this.renderTemplate(template, alert);
+      const emailContent = await this.renderTemplate(template, alert);
 
       const mailOptions = {
         from: process.env.SMTP_FROM || 'noreply@brandmonitor.com',
@@ -354,10 +353,7 @@ export class NotificationService {
   ): Promise<NotificationDelivery> {
     try {
       const notification = {
-      const notification = {
-        id: undefined, // Let the database generate the ID
-        // …other notification properties…
-      };
+        id: `notif-${Date.now()}`,
         alert_id: alert.id,
         title: alert.title,
         message: alert.message,
@@ -830,15 +826,6 @@ export class NotificationService {
       message: alert.message,
       created_at: alert.created_at.toLocaleString(),
       brand_name: brandName
-    };
-
-    for (const [key, value] of Object.entries(variables)) {
-      const regex = new RegExp(`{{${key}}}`, 'g');
-      content = content.replace(regex, value);
-    }
-
-    return content;
-  }
     };
 
     for (const [key, value] of Object.entries(variables)) {
