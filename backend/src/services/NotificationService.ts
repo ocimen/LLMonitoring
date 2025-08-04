@@ -354,10 +354,10 @@ export class NotificationService {
       // Store in-app notification in database
       await query(
         `INSERT INTO in_app_notifications 
-         (id, user_id, alert_id, title, message, severity, is_read)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+         (user_id, alert_id, title, message, severity, is_read)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id`,
         [
-          notification.id,
           recipient,
           alert.id,
           alert.title,
