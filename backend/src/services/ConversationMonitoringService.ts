@@ -1,15 +1,16 @@
 import { ConversationModel } from '../models/Conversation';
 import { BrandModel } from '../models/Brand';
 import { AIResponseModel } from '../models/AIResponse';
-import { 
-  Conversation, 
-  ConversationTurn, 
+import {
+  Conversation,
+  ConversationTurn,
   ConversationMention,
   CreateConversationInput,
   CreateConversationTurnInput,
   CreateConversationMentionInput,
   ConversationFilter
 } from '../types/database';
+import { query } from '../config/database';
 
 interface MentionDetectionResult {
   mentions: Array<{
@@ -64,7 +65,7 @@ export class ConversationMonitoringService {
   }> {
     // Analyze conversation type
     const conversationType = this.analyzeConversationType(initialQuery, context);
-    
+
     // Create conversation
     const conversationData: CreateConversationInput = {
       brand_id: brandId,
@@ -74,9 +75,9 @@ export class ConversationMonitoringService {
       ...(conversationThreadId && { conversation_thread_id: conversationThreadId }),
       ...(context && { conversation_context: context })
     };
-    
+
     const conversation = await ConversationModel.create(conversationData);
-    
+
     // Add initial turn
     const turnData: CreateConversationTurnInput = {
       conversation_id: conversation.id,
@@ -85,9 +86,9 @@ export class ConversationMonitoringService {
       ai_response: aiResponse,
       turn_type: 'initial'
     };
-    
+
     const turn = await ConversationModel.addTurn(turnData);
-    
+
     // Detect and add mentions
     const mentions = await this.detectAndAddMentions(
       conversation.id,
@@ -96,13 +97,13 @@ export class ConversationMonitoringService {
       aiResponse,
       1
     );
-    
+
     // Analyze and add topics
     await this.analyzeAndAddTopics(conversation.id, initialQuery, aiResponse, 1);
-    
+
     // Find and create relationships with existing conversations
     await this.findAndCreateRelationships(conversation.id, brandId, initialQuery);
-    
+
     return {
       conversation,
       turn,
@@ -126,9 +127,9 @@ export class ConversationMonitoringService {
     if (!conversation) {
       throw new Error('Conversation not found');
     }
-    
+
     const nextTurnNumber = conversation.total_turns + 1;
-    
+
     // Add new turn
     const turnData: CreateConversationTurnInput = {
       conversation_id: conversationId,
@@ -137,9 +138,9 @@ export class ConversationMonitoringService {
       ai_response: aiResponse,
       turn_type: turnType
     };
-    
+
     const turn = await ConversationModel.addTurn(turnData);
-    
+
     // Detect and add mentions
     const mentions = await this.detectAndAddMentions(
       conversationId,
@@ -148,10 +149,10 @@ export class ConversationMonitoringService {
       aiResponse,
       nextTurnNumber
     );
-    
+
     // Analyze and add topics
     await this.analyzeAndAddTopics(conversationId, userInput, aiResponse, nextTurnNumber);
-    
+
     return {
       turn,
       mentions
@@ -170,10 +171,10 @@ export class ConversationMonitoringService {
     if (!brand) {
       throw new Error('Brand not found');
     }
-    
+
     const mentions: MentionDetectionResult['mentions'] = [];
     const searchTerms = [brand.name, ...brand.monitoring_keywords];
-    
+
     // Simple mention detection - can be enhanced with NLP
     // Safer, linear mention detection (avoids compiling user-derived regex)
     const textLower = responseText.toLowerCase();
@@ -187,7 +188,7 @@ export class ConversationMonitoringService {
         const idx = textLower.indexOf(termLower, fromIndex);
         if (idx === -1 || ++matchCount > MAX_MATCHES_PER_TERM) break;
         // Verify word boundaries without executing user-supplied regex
-        const before = idx === 0 ? ' ' : textLower[idx - 1];
+        const before = idx === 0 ? ' ' : (textLower[idx - 1] || ' ');
         const after = textLower[idx + termLower.length] || ' ';
         const isWordChar = (ch: string) => /[A-Za-z0-9_]/.test(ch);
         if (isWordChar(before) || isWordChar(after)) {
@@ -214,7 +215,7 @@ export class ConversationMonitoringService {
         fromIndex = idx + termLower.length;
       }
     }
-    
+
     return { mentions };
   }
 
@@ -230,7 +231,7 @@ export class ConversationMonitoringService {
   ): Promise<ConversationMention[]> {
     const detectionResult = await this.detectMentions(brandId, responseText);
     const mentions: ConversationMention[] = [];
-    
+
     for (const mention of detectionResult.mentions) {
       const mentionData: CreateConversationMentionInput = {
         conversation_id: conversationId,
@@ -245,11 +246,11 @@ export class ConversationMonitoringService {
         ...(mention.relevance !== undefined && { relevance_score: mention.relevance }),
         ...(mention.confidence !== undefined && { confidence: mention.confidence })
       };
-      
+
       const conversationMention = await ConversationModel.addMention(mentionData);
       mentions.push(conversationMention);
     }
-    
+
     return mentions;
   }
 
@@ -263,7 +264,7 @@ export class ConversationMonitoringService {
     turnNumber: number
   ): Promise<void> {
     const topics = this.extractTopics(userInput + ' ' + aiResponse);
-    
+
     for (const topic of topics) {
       await ConversationModel.addTopic(
         conversationId,
@@ -291,10 +292,10 @@ export class ConversationMonitoringService {
       query,
       5
     );
-    
+
     for (const similar of similarConversations) {
       if (similar.id === conversationId) continue;
-      
+
       const similarity = this.calculateSimilarity(query, similar.initial_query);
       if (similarity > 0.7) {
         await ConversationModel.createRelationship(
@@ -329,7 +330,7 @@ export class ConversationMonitoringService {
       this.getTopMentions(brandId, days),
       this.getTrendingTopics(brandId, days)
     ]);
-    
+
     return {
       statistics,
       recentConversations: conversations.conversations,
@@ -362,19 +363,19 @@ export class ConversationMonitoringService {
     context?: Record<string, any>
   ): 'query_response' | 'follow_up' | 'multi_turn' | 'comparison' {
     const lowerQuery = query.toLowerCase();
-    
+
     if (lowerQuery.includes('compare') || lowerQuery.includes('vs') || lowerQuery.includes('versus')) {
       return 'comparison';
     }
-    
+
     if (context?.previousConversationId) {
       return 'follow_up';
     }
-    
+
     if (context?.isMultiTurn) {
       return 'multi_turn';
     }
-    
+
     return 'query_response';
   }
 
@@ -386,19 +387,19 @@ export class ConversationMonitoringService {
     const contextBefore = text.substring(Math.max(0, position - 100), position).toLowerCase();
     const contextAfter = text.substring(position + mention.length, Math.min(text.length, position + mention.length + 100)).toLowerCase();
     const context = contextBefore + ' ' + contextAfter;
-    
+
     if (context.includes('recommend') || context.includes('suggest') || context.includes('should consider')) {
       return 'recommendation';
     }
-    
+
     if (context.includes('compare') || context.includes('versus') || context.includes('vs') || context.includes('better than')) {
       return 'comparison';
     }
-    
+
     if (context.includes('similar to') || context.includes('like') || context.includes('such as')) {
       return 'indirect';
     }
-    
+
     return 'direct';
   }
 
@@ -406,25 +407,25 @@ export class ConversationMonitoringService {
     // Simple sentiment analysis - would use ML model in production
     const positiveWords = ['good', 'great', 'excellent', 'amazing', 'wonderful', 'fantastic', 'best', 'love', 'perfect'];
     const negativeWords = ['bad', 'terrible', 'awful', 'horrible', 'worst', 'hate', 'disappointing', 'poor'];
-    
+
     const lowerText = text.toLowerCase();
     let score = 0;
-    
+
     for (const word of positiveWords) {
       if (lowerText.includes(word)) score += 0.1;
     }
-    
+
     for (const word of negativeWords) {
       if (lowerText.includes(word)) score -= 0.1;
     }
-    
+
     score = Math.max(-1, Math.min(1, score));
-    
+
     let label: 'positive' | 'negative' | 'neutral';
     if (score > 0.1) label = 'positive';
     else if (score < -0.1) label = 'negative';
     else label = 'neutral';
-    
+
     return { score, label };
   }
 
@@ -432,15 +433,15 @@ export class ConversationMonitoringService {
     // Simple relevance calculation - would use ML model in production
     const contextWords = context.toLowerCase().split(/\s+/);
     const termWords = term.toLowerCase().split(/\s+/);
-    
+
     let relevance = 0.5; // Base relevance
-    
+
     // Increase relevance if term appears multiple times
     for (const termWord of termWords) {
       const occurrences = contextWords.filter(word => word.includes(termWord)).length;
       relevance += occurrences * 0.1;
     }
-    
+
     return Math.min(1, relevance);
   }
 
@@ -448,25 +449,25 @@ export class ConversationMonitoringService {
     // Simple topic extraction - would use NLP in production
     const topics: Array<{ name: string; category: string; relevance: number }> = [];
     const lowerText = text.toLowerCase();
-    
+
     // Technology topics
     if (lowerText.includes('ai') || lowerText.includes('artificial intelligence')) {
       topics.push({ name: 'Artificial Intelligence', category: 'Technology', relevance: 0.9 });
     }
-    
+
     if (lowerText.includes('software') || lowerText.includes('app')) {
       topics.push({ name: 'Software', category: 'Technology', relevance: 0.8 });
     }
-    
+
     // Business topics
     if (lowerText.includes('marketing') || lowerText.includes('advertising')) {
       topics.push({ name: 'Marketing', category: 'Business', relevance: 0.8 });
     }
-    
+
     if (lowerText.includes('sales') || lowerText.includes('revenue')) {
       topics.push({ name: 'Sales', category: 'Business', relevance: 0.8 });
     }
-    
+
     return topics;
   }
 
@@ -474,10 +475,10 @@ export class ConversationMonitoringService {
     // Simple similarity calculation - would use embeddings in production
     const words1 = new Set(text1.toLowerCase().split(/\s+/));
     const words2 = new Set(text2.toLowerCase().split(/\s+/));
-    
+
     const intersection = new Set([...words1].filter(x => words2.has(x)));
     const union = new Set([...words1, ...words2]);
-    
+
     return intersection.size / union.size;
   }
 
@@ -496,7 +497,7 @@ export class ConversationMonitoringService {
       ORDER BY cm.relevance_score DESC, cm.sentiment_score DESC
       LIMIT 10
     `, [brandId]);
-    
+
     return result.rows as ConversationMention[];
   }
 
@@ -514,16 +515,11 @@ export class ConversationMonitoringService {
       ORDER BY count DESC
       LIMIT 10
     `, [brandId]);
-    
+
     return result.rows.map((row: any) => ({
       topic: row.topic,
       category: row.category,
       count: parseInt(row.count, 10)
     }));
-  }
-
-  private static async getTrendingTopics(brandId: string, days: number): Promise<Array<{ topic: string; category: string; count: number }>> {
-    // Implementation would query trending topics
-    return [];
   }
 }
