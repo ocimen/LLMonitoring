@@ -167,7 +167,7 @@ describe('NotificationService', () => {
             user_id: 'user-1',
             channel: 'email',
             status: 'failed',
-            recipient: 'user-1',
+            recipient: 'test@example.com',
             content: mockAlert.message,
             error_message: 'Email sending failed: SMTP connection failed',
             created_at: new Date()
