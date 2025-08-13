@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import { NotificationService } from '../services/NotificationService';
 import { query } from '../config/database';
-import { AuthenticatedRequest } from '../middleware/auth';
 
 export class NotificationController {
   private static notificationService: NotificationService;
@@ -13,9 +12,9 @@ export class NotificationController {
   /**
    * Get notification preferences for the current user
    */
-  static async getPreferences(req: AuthenticatedRequest, res: Response): Promise<void> {
+  static async getPreferences(req: Request, res: Response): Promise<void> {
     try {
-      const userId = req.user!.id;
+      const userId = req.user!.userId;
       const preferences = await NotificationController.notificationService.getNotificationPreferences(userId);
       
       res.json({
@@ -35,9 +34,9 @@ export class NotificationController {
   /**
    * Update notification preferences for the current user
    */
-  static async updatePreferences(req: AuthenticatedRequest, res: Response): Promise<void> {
+  static async updatePreferences(req: Request, res: Response): Promise<void> {
     try {
-      const userId = req.user!.id;
+      const userId = req.user!.userId;
       const updates = req.body;
 
       // Validate preference fields
@@ -136,9 +135,9 @@ export class NotificationController {
   /**
    * Get in-app notifications for the current user
    */
-  static async getInAppNotifications(req: AuthenticatedRequest, res: Response): Promise<void> {
+  static async getInAppNotifications(req: Request, res: Response): Promise<void> {
     try {
-      const userId = req.user!.id;
+      const userId = req.user!.userId;
       const unreadOnly = req.query.unread_only === 'true';
       const limitParam = parseInt(req.query.limit as string);
       const offsetParam = parseInt(req.query.offset as string);
@@ -174,9 +173,9 @@ export class NotificationController {
   /**
    * Mark an in-app notification as read
    */
-  static async markAsRead(req: AuthenticatedRequest, res: Response): Promise<void> {
+  static async markAsRead(req: Request, res: Response): Promise<void> {
     try {
-      const userId = req.user!.id;
+      const userId = req.user!.userId;
       const notificationId = req.params.notificationId;
 
       if (!notificationId) {
@@ -206,9 +205,9 @@ export class NotificationController {
   /**
    * Mark all in-app notifications as read for the current user
    */
-  static async markAllAsRead(req: AuthenticatedRequest, res: Response): Promise<void> {
+  static async markAllAsRead(req: Request, res: Response): Promise<void> {
     try {
-      const userId = req.user!.id;
+      const userId = req.user!.userId;
 
       const result = await query(
         'UPDATE in_app_notifications SET is_read = true WHERE user_id = $1 AND is_read = false',
@@ -232,9 +231,9 @@ export class NotificationController {
   /**
    * Get notification delivery history
    */
-  static async getDeliveryHistory(req: AuthenticatedRequest, res: Response): Promise<void> {
+  static async getDeliveryHistory(req: Request, res: Response): Promise<void> {
     try {
-      const userId = req.user!.id;
+      const userId = req.user!.userId;
       const channel = req.query.channel as string;
       const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
       const offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
@@ -269,9 +268,9 @@ export class NotificationController {
   /**
    * Get notification statistics for the current user
    */
-  static async getStatistics(req: AuthenticatedRequest, res: Response): Promise<void> {
+  static async getStatistics(req: Request, res: Response): Promise<void> {
     try {
-      const userId = req.user!.id;
+      const userId = req.user!.userId;
       const statistics = await NotificationController.notificationService.getNotificationStatistics(userId);
 
       res.json({
@@ -291,9 +290,9 @@ export class NotificationController {
   /**
    * Test notification delivery for a specific channel
    */
-  static async testNotification(req: AuthenticatedRequest, res: Response): Promise<void> {
+  static async testNotification(req: Request, res: Response): Promise<void> {
     try {
-      const userId = req.user!.id;
+      const userId = req.user!.userId;
       const { channel } = req.body;
 
       if (!channel || !['email', 'sms', 'webhook', 'in_app'].includes(channel)) {

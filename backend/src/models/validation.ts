@@ -196,6 +196,73 @@ export const brandMetricsFilterSchema = paginationSchema.keys({
   end_date: Joi.date().min(Joi.ref('start_date'))
 });
 
+// Conversation validation schemas
+export const createConversationSchema = Joi.object({
+  brand_id: uuidSchema.required(),
+  conversation_thread_id: Joi.string().max(255),
+  ai_model_id: uuidSchema.required(),
+  conversation_type: Joi.string().valid('query_response', 'follow_up', 'multi_turn', 'comparison').required(),
+  initial_query: Joi.string().min(1).max(2000).required(),
+  conversation_context: Joi.object()
+});
+
+export const createConversationTurnSchema = Joi.object({
+  conversation_id: uuidSchema.required(),
+  turn_number: Joi.number().integer().min(1).required(),
+  user_input: Joi.string().min(1).max(2000).required(),
+  ai_response: Joi.string().min(1).max(50000).required(),
+  ai_response_id: uuidSchema,
+  turn_type: Joi.string().valid('initial', 'follow_up', 'clarification', 'comparison').required(),
+  processing_time_ms: Joi.number().integer().min(0),
+  tokens_used: Joi.number().integer().min(0),
+  cost: Joi.number().precision(6).min(0)
+});
+
+export const createConversationMentionSchema = Joi.object({
+  conversation_id: uuidSchema.required(),
+  conversation_turn_id: uuidSchema,
+  brand_id: uuidSchema.required(),
+  mention_text: Joi.string().min(1).max(1000).required(),
+  mention_context: Joi.string().min(1).max(2000).required(),
+  position_in_conversation: Joi.number().integer().min(0).required(),
+  mention_type: Joi.string().valid('direct', 'indirect', 'comparison', 'recommendation').required(),
+  sentiment_score: Joi.number().min(-1).max(1),
+  sentiment_label: Joi.string().valid('positive', 'negative', 'neutral'),
+  relevance_score: Joi.number().min(0).max(1),
+  confidence: Joi.number().min(0).max(1)
+});
+
+export const conversationFilterSchema = paginationSchema.keys({
+  brand_id: uuidSchema,
+  ai_model_id: uuidSchema,
+  conversation_type: Joi.string().valid('query_response', 'follow_up', 'multi_turn', 'comparison'),
+  is_active: Joi.boolean(),
+  has_mentions: Joi.boolean(),
+  start_date: Joi.date(),
+  end_date: Joi.date().min(Joi.ref('start_date'))
+});
+
+export const detectMentionsSchema = Joi.object({
+  brand_id: uuidSchema.required(),
+  response_text: Joi.string().min(1).max(50000).required(),
+  context: Joi.string().max(2000)
+});
+
+export const startConversationSchema = Joi.object({
+  brandId: uuidSchema.required(),
+  aiModelId: uuidSchema.required(),
+  initialQuery: Joi.string().min(1).max(2000).required(),
+  aiResponse: Joi.string().min(1).max(50000).required(),
+  conversationThreadId: Joi.string().max(255),
+  context: Joi.object()
+});
+
+export const continueConversationSchema = Joi.object({
+  userInput: Joi.string().min(1).max(2000).required(),
+  aiResponse: Joi.string().min(1).max(50000).required(),
+  turnType: Joi.string().valid('follow_up', 'clarification', 'comparison').default('follow_up')
+});
+
 // Validation helper function
 export const validateSchema = <T>(schema: Joi.ObjectSchema, data: any): T => {
   const { error, value } = schema.validate(data, {
