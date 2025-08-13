@@ -3,6 +3,7 @@ import {
   IconButton,
   Badge,
   Menu,
+  MenuItem,
   Typography,
   Box,
   Divider,
@@ -18,6 +19,7 @@ import {
   Notifications as NotificationsIcon,
   NotificationsOff as NotificationsOffIcon,
   Circle as CircleIcon,
+  CheckCircle as CheckCircleIcon,
   Warning as WarningIcon,
   Error as ErrorIcon,
   Info as InfoIcon

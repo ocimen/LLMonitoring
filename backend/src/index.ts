@@ -63,6 +63,19 @@ io.on('connection', (socket) => {
         console.log(`User ${decoded.userId} authenticated and joined room`);
       }
     } catch (error) {
+
+        socket.join(`user-${decoded.userId}`, (err) => {
+          if (err) {
+            console.error(`Failed to join room for user ${decoded.userId}:`, err);
+            socket.emit('authentication_error', { error: 'Failed to join room' });
+          } else {
+            socket.emit('authenticated', { success: true });
+            console.log(`User ${decoded.userId} authenticated and joined room`);
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Socket authentication failed:', error);
       socket.emit('authentication_error', { error: 'Invalid token' });
     }
   });

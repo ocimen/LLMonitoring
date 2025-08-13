@@ -49,7 +49,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
   children, 
   authToken 
 }) => {
-  const [, setSocket] = useState<Socket | null>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -91,11 +91,15 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
       
       // Show browser notification if supported and permitted
       if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification(notification.title, {
-          body: notification.message,
-          icon: '/favicon.ico',
-          tag: notification.id
-        });
+        try {
+          new Notification(notification.title, {
+            body: notification.message,
+            icon: '/favicon.ico',
+            tag: notification.id
+          });
+        } catch (error) {
+          console.error('Failed to create browser notification:', error);
+        }
       }
     });
 
@@ -124,7 +128,9 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 
       if (response.ok) {
         const data = await response.json();
-        setNotifications(data.data || []);
+      if (response.ok) {
+        const data = await response.json();
+        setNotifications(Array.isArray(data?.data) ? data.data : []);
       }
     } catch (error) {
       console.error('Failed to load notifications:', error);

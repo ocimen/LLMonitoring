@@ -140,8 +140,10 @@ export class NotificationController {
     try {
       const userId = req.user!.id;
       const unreadOnly = req.query.unread_only === 'true';
-      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
-      const offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
+      const limitParam = parseInt(req.query.limit as string);
+      const offsetParam = parseInt(req.query.offset as string);
+      const limit = Math.min(isNaN(limitParam) ? 20 : limitParam, 100);
+      const offset = Math.max(isNaN(offsetParam) ? 0 : offsetParam, 0);
 
       const notifications = await NotificationController.notificationService.getInAppNotifications(
         userId,
