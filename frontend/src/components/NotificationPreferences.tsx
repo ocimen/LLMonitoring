@@ -25,7 +25,7 @@ import {
   Sms as SmsIcon,
   Webhook as WebhookIcon,
   Notifications as NotificationsIcon,
-  TestTube as TestIcon,
+  Science as TestIcon,
   Save as SaveIcon,
   Refresh as RefreshIcon
 } from '@mui/icons-material';

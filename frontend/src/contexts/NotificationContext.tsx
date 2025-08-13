@@ -49,7 +49,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
   children, 
   authToken 
 }) => {
-  const [socket, setSocket] = useState<Socket | null>(null);
+  const [, setSocket] = useState<Socket | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
   const [isConnected, setIsConnected] = useState(false);
