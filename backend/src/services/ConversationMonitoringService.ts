@@ -175,30 +175,43 @@ export class ConversationMonitoringService {
     const searchTerms = [brand.name, ...brand.monitoring_keywords];
     
     // Simple mention detection - can be enhanced with NLP
+    // Safer, linear mention detection (avoids compiling user-derived regex)
+    const textLower = responseText.toLowerCase();
     for (const term of searchTerms) {
-      const regex = new RegExp(`\\b${this.escapeRegex(term)}\\b`, 'gi');
-      let match;
-      
-      while ((match = regex.exec(responseText)) !== null) {
-        const mentionStart = Math.max(0, match.index - 50);
-        const mentionEnd = Math.min(responseText.length, match.index + match[0].length + 50);
+      if (!term || !term.trim()) continue;
+      const termLower = term.toLowerCase();
+      let fromIndex = 0;
+      let matchCount = 0;
+      const MAX_MATCHES_PER_TERM = 100;
+      while (true) {
+        const idx = textLower.indexOf(termLower, fromIndex);
+        if (idx === -1 || ++matchCount > MAX_MATCHES_PER_TERM) break;
+        // Verify word boundaries without executing user-supplied regex
+        const before = idx === 0 ? ' ' : textLower[idx - 1];
+        const after = textLower[idx + termLower.length] || ' ';
+        const isWordChar = (ch: string) => /[A-Za-z0-9_]/.test(ch);
+        if (isWordChar(before) || isWordChar(after)) {
+          fromIndex = idx + 1;
+          continue; // not a whole-word match
+        }
+        const mentionStart = Math.max(0, idx - 50);
+        const mentionEnd = Math.min(responseText.length, idx + termLower.length + 50);
         const mentionContext = responseText.substring(mentionStart, mentionEnd);
-        
-        const mentionType = this.classifyMentionType(responseText, match.index, match[0]);
+        const mentionType = this.classifyMentionType(responseText, idx, responseText.substr(idx, term.length));
         const sentiment = this.analyzeSentiment(mentionContext);
-        
         mentions.push({
           brandId: brand.id,
           brandName: brand.name,
-          mentionText: match[0],
+          mentionText: responseText.substr(idx, term.length),
           context: mentionContext,
-          position: match.index,
+          position: idx,
           mentionType,
           sentiment: sentiment.score,
           sentimentLabel: sentiment.label,
           relevance: this.calculateRelevance(mentionContext, term),
-          confidence: 0.8 // Placeholder - would use ML model in production
+          confidence: 0.8
         });
+        fromIndex = idx + termLower.length;
       }
     }
     
