@@ -834,7 +834,6 @@ export class NotificationService {
       // Use split/join for safe string replacement
       content = content.split(`{{${key}}}`).join(value);
     }
-    }
 
     return content;
   }

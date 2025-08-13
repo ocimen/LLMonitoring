@@ -3,14 +3,19 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
+import { createServer } from 'http';
+import { Server as SocketIOServer } from 'socket.io';
 import { testConnection, closePool } from './config/database';
 import { DatabaseUtils, CommonQueries } from './utils/database';
 import { AuthService } from './services/auth';
 import { AuthController } from './controllers/auth';
 import { UserController } from './controllers/users';
 import { BrandController } from './controllers/brands';
+import { NotificationController } from './controllers/notifications';
+import { NotificationService } from './services/NotificationService';
 import { reportsRouter } from './routes/reports';
 import { competitiveRouter } from './routes/competitive';
+import { notificationRouter } from './routes/notifications';
 import { 
   authenticate, 
   authorize, 
@@ -28,7 +33,44 @@ dotenv.config();
 AuthService.validateConfiguration();
 
 const app = express();
+const server = createServer(app);
 const PORT = process.env.PORT || 3001;
+
+// Initialize Socket.IO
+const io = new SocketIOServer(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    methods: ['GET', 'POST']
+  }
+});
+
+// Initialize NotificationService with Socket.IO
+const notificationService = new NotificationService(io);
+NotificationController.initialize(notificationService);
+
+// Socket.IO connection handling
+io.on('connection', (socket) => {
+  console.log(`Client connected: ${socket.id}`);
+
+  // Handle user authentication for socket
+  socket.on('authenticate', (token) => {
+    try {
+      // Verify JWT token and join user-specific room
+      const decoded = AuthService.verifyToken(token);
+      if (decoded && decoded.userId) {
+        socket.join(`user-${decoded.userId}`);
+        socket.emit('authenticated', { success: true });
+        console.log(`User ${decoded.userId} authenticated and joined room`);
+      }
+    } catch (error) {
+      socket.emit('authentication_error', { error: 'Invalid token' });
+    }
+  });
+
+  socket.on('disconnect', () => {
+    console.log(`Client disconnected: ${socket.id}`);
+  });
+});
 
 // Global rate limiting
 const globalRateLimit = rateLimit({
@@ -264,6 +306,9 @@ app.use('/api/reports', reportsRouter);
 // Competitive analysis routes
 app.use('/api/competitive', competitiveRouter);
 
+// Notification routes
+app.use('/api/notifications', notificationRouter);
+
 // Get active AI models endpoint
 app.get('/api/ai-models', async (_req, res) => {
   try {
@@ -355,10 +400,11 @@ const startServer = async (): Promise<void> => {
   try {
     await initializeDatabase();
     
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`🚀 Backend server running on port ${PORT}`);
       console.log(`📊 Health check: http://localhost:${PORT}/health`);
       console.log(`🔧 API endpoint: http://localhost:${PORT}/api`);
+      console.log(`🔌 Socket.IO enabled for real-time notifications`);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);
