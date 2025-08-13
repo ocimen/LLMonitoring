@@ -25,6 +25,7 @@ import {
   Sms as SmsIcon,
   Webhook as WebhookIcon,
   Notifications as NotificationsIcon,
+  Science as TestIcon,
   TestTube as TestIcon,
   Save as SaveIcon,
   Refresh as RefreshIcon

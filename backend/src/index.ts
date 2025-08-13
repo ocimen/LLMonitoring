@@ -58,6 +58,12 @@ io.on('connection', (socket) => {
       // Verify JWT token and join user-specific room
       const decoded = AuthService.verifyToken(token);
       if (decoded && decoded.userId) {
+        socket.join(`user-${decoded.userId}`);
+        socket.emit('authenticated', { success: true });
+        console.log(`User ${decoded.userId} authenticated and joined room`);
+      }
+    } catch (error) {
+
         socket.join(`user-${decoded.userId}`, (err) => {
           if (err) {
             console.error(`Failed to join room for user ${decoded.userId}:`, err);

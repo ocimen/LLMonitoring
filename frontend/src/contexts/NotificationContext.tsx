@@ -90,7 +90,6 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
       setNotifications(prev => [notification, ...prev]);
       
       // Show browser notification if supported and permitted
-      // Show browser notification if supported and permitted
       if ('Notification' in window && Notification.permission === 'granted') {
         try {
           new Notification(notification.title, {
