@@ -90,12 +90,17 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
       setNotifications(prev => [notification, ...prev]);
       
       // Show browser notification if supported and permitted
+      // Show browser notification if supported and permitted
       if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification(notification.title, {
-          body: notification.message,
-          icon: '/favicon.ico',
-          tag: notification.id
-        });
+        try {
+          new Notification(notification.title, {
+            body: notification.message,
+            icon: '/favicon.ico',
+            tag: notification.id
+          });
+        } catch (error) {
+          console.error('Failed to create browser notification:', error);
+        }
       }
     });
 
