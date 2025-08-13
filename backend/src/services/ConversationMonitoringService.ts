@@ -486,8 +486,40 @@ export class ConversationMonitoringService {
   }
 
   private static async getTopMentions(brandId: string, days: number): Promise<ConversationMention[]> {
-    // Implementation would query top mentions by relevance/sentiment
-    return [];
+    const result = await query(`
+      SELECT cm.*
+      FROM conversation_mentions cm
+      JOIN conversations c ON cm.conversation_id = c.id
+      WHERE c.brand_id = $1 
+        AND c.started_at >= CURRENT_DATE - INTERVAL '${days} days'
+        AND cm.relevance_score IS NOT NULL
+      ORDER BY cm.relevance_score DESC, cm.sentiment_score DESC
+      LIMIT 10
+    `, [brandId]);
+    
+    return result.rows as ConversationMention[];
+  }
+
+  private static async getTrendingTopics(brandId: string, days: number): Promise<Array<{ topic: string; category: string; count: number }>> {
+    const result = await query(`
+      SELECT 
+        ct.topic_name as topic,
+        ct.topic_category as category,
+        SUM(ct.mention_count) as count
+      FROM conversation_topics ct
+      JOIN conversations c ON ct.conversation_id = c.id
+      WHERE c.brand_id = $1 
+        AND c.started_at >= CURRENT_DATE - INTERVAL '${days} days'
+      GROUP BY ct.topic_name, ct.topic_category
+      ORDER BY count DESC
+      LIMIT 10
+    `, [brandId]);
+    
+    return result.rows.map((row: any) => ({
+      topic: row.topic,
+      category: row.category,
+      count: parseInt(row.count, 10)
+    }));
   }
 
   private static async getTrendingTopics(brandId: string, days: number): Promise<Array<{ topic: string; category: string; count: number }>> {
