@@ -132,7 +132,9 @@ export class NotificationService {
     try {
       if (process.env.SMS_PROVIDER && process.env.SMS_API_KEY) {
         this.smsConfig = {
-          provider: process.env.SMS_PROVIDER as 'twilio' | 'aws_sns',
+          provider: ['twilio', 'aws_sns'].includes(process.env.SMS_PROVIDER!)
+            ? process.env.SMS_PROVIDER as 'twilio' | 'aws_sns'
+            : (() => { throw new Error(`Invalid SMS provider: ${process.env.SMS_PROVIDER}`) })(),
           apiKey: process.env.SMS_API_KEY,
           apiSecret: process.env.SMS_API_SECRET || '',
           ...(process.env.SMS_FROM_NUMBER && { fromNumber: process.env.SMS_FROM_NUMBER })
