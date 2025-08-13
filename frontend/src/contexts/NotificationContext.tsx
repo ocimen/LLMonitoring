@@ -129,7 +129,9 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 
       if (response.ok) {
         const data = await response.json();
-        setNotifications(data.data || []);
+      if (response.ok) {
+        const data = await response.json();
+        setNotifications(Array.isArray(data?.data) ? data.data : []);
       }
     } catch (error) {
       console.error('Failed to load notifications:', error);
