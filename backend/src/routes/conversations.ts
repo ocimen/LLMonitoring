@@ -36,8 +36,8 @@ router.get('/:conversationId/mentions', getConversationMentions);
 router.get('/:conversationId/topics', getConversationTopics);
 
 // Analytics and dashboard routes
-router.get('/dashboard/:brandId', getDashboardData);
-router.get('/statistics/:brandId', getConversationStatistics);
+router.get('/dashboard/:brandId', authorizeBrandAccess('viewer'), getDashboardData);
+router.get('/statistics/:brandId', authorizeBrandAccess('viewer'), getConversationStatistics);
 
 // Utility routes
 router.post('/detect-mentions', detectMentions);
