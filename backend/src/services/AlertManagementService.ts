@@ -39,6 +39,10 @@ export interface AlertPreferences {
 export class AlertManagementService {
   private alertQueue: Queue.Queue;
   private redis: Redis;
+  
+  // Configuration constants
+  private static readonly DEFAULT_NOTIFICATION_BATCH_SIZE = 100;
+  private static readonly MAX_NOTIFICATION_BATCH_SIZE = 500;
 
   constructor() {
     // Initialize Redis connection for Bull Queue
@@ -597,31 +601,147 @@ export class AlertManagementService {
   }
 
   /**
-   * Send notification through specified channel (placeholder implementation)
+   * Send notification through specified channel
    */
   private async sendNotification(alert: Alert, channel: string): Promise<void> {
     try {
       console.log(`Sending ${channel} notification for alert ${alert.id}`);
       
-      // TODO: Implement actual notification sending
-      // This would integrate with email services, SMS providers, webhooks, etc.
-      
-      switch (channel) {
-        case 'email':
-          // await this.sendEmailNotification(alert);
+      // Import NotificationService dynamically to avoid circular dependencies
+      const { NotificationService } = await import('./NotificationService');
+      const notificationService = new NotificationService();
+
+      // Process users in batches to avoid memory and performance issues
+      await this.processUsersInBatches(alert, channel, notificationService);
+    } catch (error) {
+      console.error(`Failed to send ${channel} notification for alert ${alert.id}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Process users in batches for notification sending
+   */
+  private async processUsersInBatches(
+    alert: Alert, 
+    channel: string, 
+    notificationService: any,
+    batchSize: number = AlertManagementService.DEFAULT_NOTIFICATION_BATCH_SIZE
+  ): Promise<void> {
+    // Ensure batch size is within reasonable limits
+    const safeBatchSize = Math.min(
+      Math.max(batchSize, 1), 
+      AlertManagementService.MAX_NOTIFICATION_BATCH_SIZE
+    );
+    let offset = 0;
+    let hasMoreUsers = true;
+    let totalProcessed = 0;
+
+    while (hasMoreUsers) {
+      try {
+        // Get users in batches
+        const usersResult = await query(
+          `SELECT u.id FROM users u 
+           JOIN user_brands ub ON u.id = ub.user_id 
+           WHERE ub.brand_id = $1 AND u.is_active = true
+           ORDER BY u.id
+           LIMIT $2 OFFSET $3`,
+          [alert.brand_id, safeBatchSize, offset]
+        );
+
+        if (usersResult.rows.length === 0) {
+          if (totalProcessed === 0) {
+            console.warn(`No active users found for brand ${alert.brand_id}`);
+          }
+          hasMoreUsers = false;
           break;
-        case 'sms':
-          // await this.sendSMSNotification(alert);
+        }
+
+        console.log(`Processing batch of ${usersResult.rows.length} users for alert ${alert.id} (offset: ${offset})`);
+
+        // Process current batch of users
+        await this.processBatchUsers(usersResult.rows, alert, channel, notificationService);
+
+        totalProcessed += usersResult.rows.length;
+        offset += safeBatchSize;
+
+        // If we got fewer users than the batch size, we've reached the end
+        if (usersResult.rows.length < safeBatchSize) {
+          hasMoreUsers = false;
+        }
+      } catch (error) {
+        console.error(`Error processing batch at offset ${offset} for alert ${alert.id}:`, error);
+        // Continue with next batch to avoid complete failure
+        offset += safeBatchSize;
+        
+        // If we've had multiple consecutive failures, stop processing
+        if (offset > safeBatchSize * 10) { // Allow up to 10 batch failures
+          console.error(`Too many batch failures for alert ${alert.id}, stopping processing`);
           break;
-        case 'webhook':
-          // await this.sendWebhookNotification(alert);
-          break;
-        case 'in_app':
-          // await this.sendInAppNotification(alert);
-          break;
-        default:
-          console.warn(`Unknown notification channel: ${channel}`);
+        }
       }
+    }
+
+    console.log(`Completed notification sending for alert ${alert.id}. Total users processed: ${totalProcessed}`);
+  }
+
+  /**
+   * Process a batch of users for notification sending
+   */
+  private async processBatchUsers(
+    users: any[], 
+    alert: Alert, 
+    channel: string, 
+    notificationService: any
+  ): Promise<void> {
+    // Process users in parallel within the batch for better performance
+    const promises = users.map(async (user) => {
+      try {
+        const preferences = await notificationService.getNotificationPreferences(user.id);
+        await notificationService.sendNotification(
+          alert,
+          channel as 'email' | 'sms' | 'webhook' | 'in_app',
+          user.id,
+          preferences
+        );
+        return { success: true, userId: user.id };
+      } catch (error) {
+        console.error(`Failed to send ${channel} notification to user ${user.id}:`, error);
+        return { success: false, userId: user.id, error };
+      }
+    });
+
+    // Wait for all notifications in the current batch to complete
+    const results = await Promise.allSettled(promises);
+    
+    // Log batch completion statistics
+    const successful = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
+    const failed = results.length - successful;
+    
+    if (failed > 0) {
+      console.warn(`Batch completed with ${successful} successful and ${failed} failed notifications for alert ${alert.id}`);
+    } else {
+      console.log(`Batch completed successfully: ${successful} notifications sent for alert ${alert.id}`);
+    }
+  }
+
+  /**
+   * Send notification with custom batch size (for testing or special cases)
+   */
+  private async sendNotificationWithBatchSize(
+    alert: Alert, 
+    channel: string, 
+    batchSize?: number
+  ): Promise<void> {
+    try {
+      console.log(`Sending ${channel} notification for alert ${alert.id} with batch size ${batchSize || AlertManagementService.DEFAULT_NOTIFICATION_BATCH_SIZE}`);
+      
+      // Import NotificationService dynamically to avoid circular dependencies
+      const { NotificationService } = await import('./NotificationService');
+      const notificationService = new NotificationService();
+
+      // Process users in batches with custom batch size
+      await this.processUsersInBatches(alert, channel, notificationService, batchSize);
     } catch (error) {
       console.error(`Failed to send ${channel} notification for alert ${alert.id}:`, error);
       throw error;
