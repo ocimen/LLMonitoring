@@ -831,8 +831,9 @@ export class NotificationService {
     };
 
     for (const [key, value] of Object.entries(variables)) {
-      const regex = new RegExp(`{{${key}}}`, 'g');
-      content = content.replace(regex, value);
+      // Use split/join for safe string replacement
+      content = content.split(`{{${key}}}`).join(value);
+    }
     }
 
     return content;
