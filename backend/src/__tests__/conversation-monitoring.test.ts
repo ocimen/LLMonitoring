@@ -19,48 +19,18 @@ const mockBrandModel = BrandModel as jest.Mocked<typeof BrandModel>;
 
 // Mock the static methods
 beforeAll(() => {
-  // Mock ConversationMonitoringService static methods
-  jest.spyOn(ConversationMonitoringService, 'detectMentions').mockImplementation(
-    async (brandId: string, responseText: string) => {
-      const mentions = [];
-      
-      // Simple mock implementation for testing
-      if (responseText.toLowerCase().includes('test brand')) {
-        mentions.push({
-          brandId,
-          brandName: 'Test Brand',
-          mentionText: 'Test Brand',
-          context: responseText.substring(0, 100),
-          position: responseText.toLowerCase().indexOf('test brand'),
-          mentionType: responseText.toLowerCase().includes('recommend') ? 'recommendation' as const :
-                      responseText.toLowerCase().includes('better than') ? 'comparison' as const : 'direct' as const,
-          sentiment: responseText.toLowerCase().includes('excellent') || responseText.toLowerCase().includes('amazing') ? 0.8 :
-                    responseText.toLowerCase().includes('terrible') || responseText.toLowerCase().includes('disappointing') ? -0.8 : 0,
-          sentimentLabel: responseText.toLowerCase().includes('excellent') || responseText.toLowerCase().includes('amazing') ? 'positive' as const :
-                         responseText.toLowerCase().includes('terrible') || responseText.toLowerCase().includes('disappointing') ? 'negative' as const : 'neutral' as const,
-          relevance: 0.9,
-          confidence: 0.8
-        });
-      }
-      
-      if (responseText.toLowerCase().includes('product')) {
-        mentions.push({
-          brandId,
-          brandName: 'Test Brand',
-          mentionText: 'product',
-          context: responseText.substring(0, 100),
-          position: responseText.toLowerCase().indexOf('product'),
-          mentionType: 'direct' as const,
-          sentiment: 0.5,
-          sentimentLabel: 'neutral' as const,
-          relevance: 0.7,
-          confidence: 0.8
-        });
-      }
-      
-      return { mentions };
+  // Mock brand data for detectMentions
+  mockBrandModel.findById.mockImplementation(async (id: string) => {
+    if (id === 'brand-123') {
+      return {
+        id: 'brand-123',
+        name: 'Test Brand',
+        monitoring_keywords: ['test', 'brand', 'product'],
+        domain: 'testbrand.com'
+      } as Brand;
     }
-  );
+    return null;
+  });
 });
 
 describe('ConversationMonitoringService', () => {
