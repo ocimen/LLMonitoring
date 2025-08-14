@@ -313,15 +313,15 @@ export const compareBrandSentiment = async (req: AuthenticatedRequest, res: Resp
         comparison: comparison,
         summary: {
           total_brands: comparison.length,
-          best_sentiment: comparison.reduce((best, current) => 
+          best_sentiment: comparison.length > 0 ? comparison.reduce((best, current) => 
             current.average_sentiment > best.average_sentiment ? current : best
-          ),
-          worst_sentiment: comparison.reduce((worst, current) => 
+          ) : null,
+          worst_sentiment: comparison.length > 0 ? comparison.reduce((worst, current) => 
             current.average_sentiment < worst.average_sentiment ? current : worst
-          ),
-          average_sentiment: comparison.reduce((sum, brand) => 
+          ) : null,
+          average_sentiment: comparison.length > 0 ? comparison.reduce((sum, brand) => 
             sum + brand.average_sentiment, 0
-          ) / comparison.length
+          ) / comparison.length : 0
         }
       }
     });
