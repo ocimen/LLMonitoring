@@ -388,9 +388,8 @@ export const getSentimentDashboard = async (req: AuthenticatedRequest, res: Resp
 
     // Calculate change from previous period
     const previousTrend = trends[trends.length - 2];
-    const sentimentChange = previousTrend ? 
-      ((currentSentiment - previousTrend.sentiment_score) / Math.abs(previousTrend.sentiment_score || 1)) * 100 : 0;
-
+    const sentimentChange = previousTrend && previousTrend.sentiment_score !== 0 ? 
+      ((currentSentiment - previousTrend.sentiment_score) / Math.abs(previousTrend.sentiment_score)) * 100 : 0;
     res.json({
       success: true,
       data: {
