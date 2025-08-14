@@ -738,7 +738,11 @@ export class SentimentAnalysisService {
     for (let i = 1; i < trends.length; i++) {
       const current = trends[i];
       const previous = trends[i - 1];
-      if (!current || !previous) continue;
+      const current = trends[i];
+      const previous = trends[i - 1];
+      if (!current || !previous ||
+          typeof current.sentiment_score !== 'number' ||
+          typeof previous.sentiment_score !== 'number') continue;
       const change = current.sentiment_score - previous.sentiment_score;
 
       if (Math.abs(change) > 0.3) {
