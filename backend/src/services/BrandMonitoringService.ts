@@ -385,7 +385,7 @@ export class BrandMonitoringService {
    * Monitor multiple brands in batch
    */
   async batchMonitorBrands(brandIds: string[]): Promise<BrandMonitoringResult[]> {
-    const results = [];
+    const results: BrandMonitoringResult[] = [];
 
     for (const brandId of brandIds) {
       try {

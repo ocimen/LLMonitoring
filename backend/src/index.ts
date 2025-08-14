@@ -17,6 +17,7 @@ import { reportsRouter } from './routes/reports';
 import { competitiveRouter } from './routes/competitive';
 import { notificationRouter } from './routes/notifications';
 import conversationRouter from './routes/conversations';
+import sentimentRouter from './routes/sentiment';
 import { 
   authenticate, 
   authorize, 
@@ -313,6 +314,9 @@ app.use('/api/notifications', notificationRouter);
 
 // Conversation monitoring routes
 app.use('/api/conversations', conversationRouter);
+
+// Sentiment analysis routes
+app.use('/api/sentiment', sentimentRouter);
 
 // Get active AI models endpoint
 app.get('/api/ai-models', async (_req, res) => {
