@@ -106,9 +106,21 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
     setSocket(newSocket);
 
     return () => {
-      newSocket.close();
+      if (newSocket) {
+        newSocket.close();
+      }
+      setSocket(null);
     };
   }, [authToken]);
+
+  // Cleanup socket on unmount
+  useEffect(() => {
+    return () => {
+      if (socket) {
+        socket.close();
+      }
+    };
+  }, [socket]);
 
   // Request browser notification permission
   useEffect(() => {
@@ -126,8 +138,6 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
         }
       });
 
-      if (response.ok) {
-        const data = await response.json();
       if (response.ok) {
         const data = await response.json();
         setNotifications(Array.isArray(data?.data) ? data.data : []);

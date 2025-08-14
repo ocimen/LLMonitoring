@@ -3,8 +3,7 @@ import { NotificationController } from '../controllers/notifications';
 import { 
   authenticate, 
   authorize, 
-  validateRequestBody,
-  AuthenticatedRequest 
+  validateRequestBody
 } from '../middleware/auth';
 
 const router = Router();

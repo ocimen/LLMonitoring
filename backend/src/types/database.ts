@@ -222,6 +222,110 @@ export interface DatabaseQueryResult<T = any> {
   rowCount: number;
 }
 
+// Conversation tracking interfaces
+export interface Conversation {
+  id: string;
+  brand_id: string;
+  conversation_thread_id?: string;
+  ai_model_id: string;
+  conversation_type: 'query_response' | 'follow_up' | 'multi_turn' | 'comparison';
+  initial_query: string;
+  conversation_context?: Record<string, any>;
+  total_turns: number;
+  is_active: boolean;
+  started_at: Date;
+  last_activity_at: Date;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface ConversationTurn {
+  id: string;
+  conversation_id: string;
+  turn_number: number;
+  user_input: string;
+  ai_response: string;
+  ai_response_id?: string;
+  turn_type: 'initial' | 'follow_up' | 'clarification' | 'comparison';
+  processing_time_ms?: number;
+  tokens_used?: number;
+  cost?: number;
+  created_at: Date;
+}
+
+export interface ConversationMention {
+  id: string;
+  conversation_id: string;
+  conversation_turn_id?: string;
+  brand_id: string;
+  mention_text: string;
+  mention_context: string;
+  position_in_conversation: number;
+  mention_type: 'direct' | 'indirect' | 'comparison' | 'recommendation';
+  sentiment_score?: number;
+  sentiment_label?: 'positive' | 'negative' | 'neutral';
+  relevance_score?: number;
+  confidence?: number;
+  created_at: Date;
+}
+
+export interface ConversationTopic {
+  id: string;
+  conversation_id: string;
+  topic_name: string;
+  topic_category: string;
+  relevance_score: number;
+  first_mentioned_turn: number;
+  last_mentioned_turn: number;
+  mention_count: number;
+  created_at: Date;
+}
+
+export interface ConversationRelationship {
+  id: string;
+  parent_conversation_id: string;
+  child_conversation_id: string;
+  relationship_type: 'follow_up' | 'related_topic' | 'comparison' | 'clarification';
+  relationship_strength: number;
+  created_at: Date;
+}
+
+// Input types for conversation tracking
+export interface CreateConversationInput {
+  brand_id: string;
+  conversation_thread_id?: string;
+  ai_model_id: string;
+  conversation_type: 'query_response' | 'follow_up' | 'multi_turn' | 'comparison';
+  initial_query: string;
+  conversation_context?: Record<string, any>;
+}
+
+export interface CreateConversationTurnInput {
+  conversation_id: string;
+  turn_number: number;
+  user_input: string;
+  ai_response: string;
+  ai_response_id?: string;
+  turn_type: 'initial' | 'follow_up' | 'clarification' | 'comparison';
+  processing_time_ms?: number;
+  tokens_used?: number;
+  cost?: number;
+}
+
+export interface CreateConversationMentionInput {
+  conversation_id: string;
+  conversation_turn_id?: string;
+  brand_id: string;
+  mention_text: string;
+  mention_context: string;
+  position_in_conversation: number;
+  mention_type: 'direct' | 'indirect' | 'comparison' | 'recommendation';
+  sentiment_score?: number;
+  sentiment_label?: 'positive' | 'negative' | 'neutral';
+  relevance_score?: number;
+  confidence?: number;
+}
+
 // Common query filters
 export interface PaginationOptions {
   limit?: number;
@@ -238,4 +342,12 @@ export interface BrandMetricsFilter extends PaginationOptions, DateRangeFilter {
   ai_model_id?: string;
   geographic_region?: string;
   query_category?: string;
+}
+
+export interface ConversationFilter extends PaginationOptions, DateRangeFilter {
+  brand_id?: string;
+  ai_model_id?: string;
+  conversation_type?: string;
+  is_active?: boolean;
+  has_mentions?: boolean;
 }

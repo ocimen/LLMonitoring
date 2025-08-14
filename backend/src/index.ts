@@ -16,6 +16,7 @@ import { NotificationService } from './services/NotificationService';
 import { reportsRouter } from './routes/reports';
 import { competitiveRouter } from './routes/competitive';
 import { notificationRouter } from './routes/notifications';
+import conversationRouter from './routes/conversations';
 import { 
   authenticate, 
   authorize, 
@@ -53,26 +54,14 @@ io.on('connection', (socket) => {
   console.log(`Client connected: ${socket.id}`);
 
   // Handle user authentication for socket
-  socket.on('authenticate', (token) => {
+  socket.on('authenticate', async (token) => {
     try {
       // Verify JWT token and join user-specific room
-      const decoded = AuthService.verifyToken(token);
+      const decoded = await AuthService.verifyAccessToken(token);
       if (decoded && decoded.userId) {
         socket.join(`user-${decoded.userId}`);
         socket.emit('authenticated', { success: true });
         console.log(`User ${decoded.userId} authenticated and joined room`);
-      }
-    } catch (error) {
-
-        socket.join(`user-${decoded.userId}`, (err) => {
-          if (err) {
-            console.error(`Failed to join room for user ${decoded.userId}:`, err);
-            socket.emit('authentication_error', { error: 'Failed to join room' });
-          } else {
-            socket.emit('authenticated', { success: true });
-            console.log(`User ${decoded.userId} authenticated and joined room`);
-          }
-        });
       }
     } catch (error) {
       console.error('Socket authentication failed:', error);
@@ -321,6 +310,9 @@ app.use('/api/competitive', competitiveRouter);
 
 // Notification routes
 app.use('/api/notifications', notificationRouter);
+
+// Conversation monitoring routes
+app.use('/api/conversations', conversationRouter);
 
 // Get active AI models endpoint
 app.get('/api/ai-models', async (_req, res) => {
