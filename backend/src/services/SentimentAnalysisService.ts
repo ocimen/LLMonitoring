@@ -551,7 +551,7 @@ export class SentimentAnalysisService {
     } else if (text.includes('compare') || text.includes('versus')) {
       contextCategory = 'comparison';
       contextCategories.push('comparison');
-    } else if (text.includes('smartphones') || text.includes('product') || text.includes('item')) {
+    } else if (text.includes('product') || text.includes('item') || text.includes('goods')) {
       contextCategory = 'product';
       contextCategories.push('product');
     } else if (text.includes('service') || text.includes('support')) {
