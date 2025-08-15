@@ -551,7 +551,7 @@ export class SentimentAnalysisService {
     } else if (text.includes('compare') || text.includes('versus')) {
       contextCategory = 'comparison';
       contextCategories.push('comparison');
-    } else if (text.includes('product') || text.includes('item') || text.includes('goods')) {
+    } else if (text.includes('product') || text.includes('item') || text.includes('goods') || text.includes('smartphones') || text.includes('technology')) {
       contextCategory = 'product';
       contextCategories.push('product');
     } else if (text.includes('service') || text.includes('support')) {
@@ -736,8 +736,6 @@ export class SentimentAnalysisService {
     }> = [];
 
     for (let i = 1; i < trends.length; i++) {
-      const current = trends[i];
-      const previous = trends[i - 1];
       const current = trends[i];
       const previous = trends[i - 1];
       if (!current || !previous ||
