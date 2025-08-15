@@ -50,11 +50,11 @@ export const query = async (text: string, params?: any[]): Promise<any> => {
   try {
     const result = await pool.query(text, params);
     const duration = Date.now() - start;
-    
+
     if (process.env.NODE_ENV === 'development') {
       console.log('🔍 Executed query', { text, duration, rows: result.rowCount });
     }
-    
+
     return result;
   } catch (error) {
     const duration = Date.now() - start;

@@ -19,9 +19,13 @@ const mockAIModelManager = AIModelManager as jest.MockedClass<typeof AIModelMana
 describe('BrandMonitoringService', () => {
   let brandMonitoringService: BrandMonitoringService;
   let mockAIModelManagerInstance: jest.Mocked<AIModelManager>;
+  let consoleErrorSpy: jest.SpyInstance;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    
+    // Mock console.error to suppress expected error logs during tests
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     
     // Create mock instance
     mockAIModelManagerInstance = {
@@ -35,6 +39,11 @@ describe('BrandMonitoringService', () => {
     mockAIModelManager.mockImplementation(() => mockAIModelManagerInstance);
     
     brandMonitoringService = new BrandMonitoringService();
+  });
+
+  afterEach(() => {
+    // Restore console.error after each test
+    consoleErrorSpy.mockRestore();
   });
 
   describe('monitorBrand', () => {
